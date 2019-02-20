@@ -1,0 +1,6 @@
+.idea/
+.docker/data
+.docker/cache
+.bash_history
+.env
+docker-compose.override.yml

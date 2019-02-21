@@ -1,14 +1,27 @@
 <?php
 
-$now = new DateTime($ts);
-$expires = clone $now;
-$expires->add(new DateInterval('PT10S'));
+use App\Kernel;
+use Symfony\Component\Debug\Debug;
+use Symfony\Component\HttpFoundation\Request;
 
-$ts = gmdate("D, d M Y H:i:s", $now->getTimestamp()) . " GMT";
-$ts1 = gmdate("D, d M Y H:i:s", $expires->getTimestamp()) . " GMT";
+require dirname(__DIR__).'/config/bootstrap.php';
 
-header("Expires: $ts1");
-header("Last-Modified: $ts");
-header("Cache-Control: public");
+if ($_SERVER['APP_DEBUG']) {
+    umask(0000);
 
-echo $_SERVER['REQUEST_URI'] . ' ' . date('Y-m-d H:i:s');
+    Debug::enable();
+}
+
+if ($trustedProxies = $_SERVER['TRUSTED_PROXIES'] ?? $_ENV['TRUSTED_PROXIES'] ?? false) {
+    Request::setTrustedProxies(explode(',', $trustedProxies), Request::HEADER_X_FORWARDED_ALL ^ Request::HEADER_X_FORWARDED_HOST);
+}
+
+if ($trustedHosts = $_SERVER['TRUSTED_HOSTS'] ?? $_ENV['TRUSTED_HOSTS'] ?? false) {
+    Request::setTrustedHosts([$trustedHosts]);
+}
+
+$kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
+$request = Request::createFromGlobals();
+$response = $kernel->handle($request);
+$response->send();
+$kernel->terminate($request, $response);
